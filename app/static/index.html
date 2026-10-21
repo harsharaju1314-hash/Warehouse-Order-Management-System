@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warehouse Order Management System</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">
+        <h1>Warehouse Order Management System</h1>
+        <p>OR-Tools Linear Optimization &bull; Multi-Warehouse Routing &bull; Atomic Reservations</p>
+      </div>
+      <div id="system-health" class="health-badge">
+        <span class="health-dot"></span>
+        <span id="health-text">Checking Cluster...</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+      <button class="tab-btn active" onclick="switchTab('warehouses')">Warehouses</button>
+      <button class="tab-btn" onclick="switchTab('inventory')">Inventory & Stock</button>
+      <button class="tab-btn" onclick="switchTab('orders')">Orders</button>
+      <button class="tab-btn" onclick="switchTab('create-order')">+ New Order</button>
+      <button class="tab-btn" onclick="switchTab('adjust-stock')">+ Adjust Stock</button>
+    </nav>
+
+    <!-- Feedback Banner -->
+    <div id="global-alert" style="display: none;"></div>
+
+    <!-- Tab 1: Warehouses -->
+    <section id="tab-warehouses" class="tab-pane active">
+      <div class="grid-cards" id="wh-stats"></div>
+      <div class="card">
+        <h3>Warehouse Nodes & Capacity</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Daily Load / Cap</th>
+                <th>Base / KM Cost</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="warehouses-table-body">
+              <tr><td colspan="7" class="loading">Loading warehouses...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Inventory -->
+    <section id="tab-inventory" class="tab-pane">
+      <div class="card">
+        <h3>Stock Balances by Warehouse</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Warehouse</th>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th>On-Hand</th>
+                <th>Reserved</th>
+                <th>Available</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <tr><td colspan="7" class="loading">Loading inventory...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Orders -->
+    <section id="tab-orders" class="tab-pane">
+      <div class="card">
+        <h3>Customer Orders & Routing Allocations</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Items Price</th>
+                <th>Fulfillment Cost</th>
+                <th>Routing Strategy</th>
+                <th>Allocations (Splits)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body">
+              <tr><td colspan="8" class="loading">Loading orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: Create Order Form -->
+    <section id="tab-create-order" class="tab-pane">
+      <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <h3>Create & Route Order</h3>
+        <p class="stat-desc" style="margin-bottom: 20px;">
+          Submit order to determine optimal warehouse routing via Google OR-Tools or Nearest Baseline.
+        </p>
+        <form id="order-form" onsubmit="handleCreateOrder(event)">
+          <div class="form-group">
+            <label>Customer Identifier</label>
+            <input type="text" id="order-customer" required placeholder="e.g. CUST-9001" value="CUST-ALPHA-01">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label>Destination Latitude</label>
+              <input type="number" step="any" id="order-lat" required value="37.7749">
+            </div>
+            <div class="form-group">
+              <label>Destination Longitude</label>
+              <input type="number" step="any" id="order-lon" required value="-122.4194">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Routing Strategy</label>
+            <select id="order-strategy">
+              <option value="OR_TOOLS_LP">Google OR-Tools Mixed Integer Optimizer (Cost Minimal)</option>
+              <option value="NEAREST_GREEDY">Greedy Nearest Warehouse First</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Select Product</label>
+            <select id="order-product-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" id="order-quantity" min="1" value="5" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Submit & Route Order</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Tab 5: Adjust Stock Form -->
+    <section id="tab-adjust-stock" class="tab-pane">
+      <div class="card" style="max-width: 600px; margin: 0 auto;">
+        <h3>Adjust Warehouse Inventory</h3>
+        <p class="stat-desc" style="margin-bottom: 20px;">
+          Add stock (restock) or deduct manual quantity with atomic audit logging.
+        </p>
+        <form id="adjust-form" onsubmit="handleAdjustStock(event)">
+          <div class="form-group">
+            <label>Warehouse</label>
+            <select id="adjust-warehouse-select" required></select>
+          </div>
+          <div class="form-group">
+            <label>Product</label>
+            <select id="adjust-product-select" required></select>
+          </div>
+          <div class="form-group">
+            <label>Quantity Delta (+ to add, - to subtract)</label>
+            <input type="number" id="adjust-delta" required value="50">
+          </div>
+          <div class="form-group">
+            <label>Reason for Adjustment</label>
+            <input type="text" id="adjust-reason" value="Restocking batch">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Update Stock</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
