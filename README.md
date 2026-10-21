@@ -71,7 +71,8 @@ A high-performance, fault-tolerant **Warehouse Order Management System** designe
 ### 2. How Inventory Consistency is Maintained
 1. **Available Stock vs Reserved Stock:**
    Each inventory record maintains:
-   $$\text{quantity\_available} = \text{quantity\_on\_hand} - \text{quantity\_reserved}$$
+   $$\text{Available Stock} = \text{On-Hand Stock} - \text{Reserved Stock}$$
+   In database models: `quantity_available = quantity_on_hand - quantity_reserved`
 2. **Database Check Constraints:**
    - `quantity_on_hand >= 0`
    - `quantity_reserved >= 0`
@@ -84,7 +85,7 @@ A high-performance, fault-tolerant **Warehouse Order Management System** designe
 - **Phase A (Cache/DB Check):** If the key is already completed in Redis or committed in PostgreSQL, the cached serialized response is immediately returned (HTTP 200/201), completely bypassing order recreation and stock reservation.
 - **Phase B (In-Flight Lock):** If another identical request is currently processing, an `IdempotencyConflictError` (HTTP 409) is returned.
 - **Phase C (Bounded Retries):** Retries for transient failures (e.g. database lock acquisition timeout, network blip) execute bounded retries with exponential backoff and jitter:
-  $$\text{delay} = \min(\text{max\_delay}, \text{base\_delay} \cdot 2^{\text{attempt}-1}) \cdot (0.5 + \text{random}())$$
+  $$\text{Delay} = \min(\text{MaxDelay}, \text{BaseDelay} \cdot 2^{\text{attempt}-1}) \cdot (0.5 + \text{random}())$$
   Permanent business errors (e.g. `InsufficientInventoryError`, validation failure) fail fast and are never retried.
 
 ### 4. Mathematical Formulation of Linear Programming Optimization (Google OR-Tools)
