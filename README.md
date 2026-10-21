@@ -159,11 +159,6 @@ Warehouse-Order-Management-System/
 ├── Dockerfile                # Multi-stage Docker container build
 ├── docker-compose.yml        # PostgreSQL 16, Redis 7, and FastAPI orchestration
 ├── requirements.txt          # Python 3.12+ pinned dependencies
-├── alembic.ini               # Database migrations config
-├── alembic/                  # Version-controlled schema migrations
-│   ├── env.py
-│   └── versions/
-│       └── 001_initial_schema.py
 ├── app/
 │   ├── main.py               # FastAPI entrypoint, lifespan, CORS, error mappers
 │   ├── config.py             # Pydantic Settings configuration
